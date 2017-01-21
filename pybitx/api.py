@@ -1,9 +1,13 @@
-import requests
-import logging
+from __future__ import absolute_import
+
 from concurrent.futures import ThreadPoolExecutor
-from meta import version
-import pandas as pd
 import json
+import logging
+
+import pandas as pd
+import requests
+
+from .meta import version
 
 __version__ = version
 
