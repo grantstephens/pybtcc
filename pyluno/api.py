@@ -109,17 +109,21 @@ class Luno:
             pd.concat([asks, bids], axis=1).values, columns=index)
         return df
 
-    def get_trades(self, limit=None, kind='auth'):
+    def get_trades(self, limit=None, kind='auth', since=None):
         params = {'pair': self.pair}
+        if since is not None:
+            params['since'] = since
         trades = self.api_request('trades', params, kind=kind)
         if limit is not None:
             trades['trades'] = trades['trades'][:limit]
         return trades
 
-    def get_trades_frame(self, limit=None, kind='auth'):
-        trades = self.get_trades(limit, kind)
+    def get_trades_frame(self, limit=None, kind='auth', since=None):
+        trades = self.get_trades(limit, kind, since)
         df = pd.DataFrame(trades['trades'])
-        df.index = pd.to_datetime(df.timestamp * 1e-3, unit='s')
+        if df.empty:
+            return None
+        df.index = pd.to_datetime(df.timestamp, unit='ms')
         df.drop('timestamp', axis=1, inplace=True)
         return df
 
