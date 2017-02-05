@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
-import pybitx
+import pyluno
 
 setup(
-    name='pybitx',
-    version=pybitx.__version__,
+    name='pyluno',
+    version=pyluno.__version__,
     packages=find_packages(exclude=['tests']),
-    description='A BitX API for Python',
+    description='A Luno API for Python',
     author='Cayle Sharrock',
     author_email='cayle@nimbustech.biz',
     scripts=['demo.py'],
@@ -16,9 +16,10 @@ setup(
         'pandas>=0.17.0'
     ],
     license='MIT',
-    url='https://github.com/CjS77/pybitx',
-    download_url='https://github.com/CjS77/pybitx/tarball/%s' % (pybitx.__version__, ),
-    keywords='BitX Bitcoin exchange API',
+    url='https://github.com/grantstephens/pyluno',
+    download_url='https://github.com/grantstephens/pyluno/tarball/%s'
+        % (pyluno.__version__, ),
+    keywords='Luno Bitcoin exchange API',
     classifiers=[],
     test_suite='tests',
     tests_require=[

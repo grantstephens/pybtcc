@@ -1,17 +1,17 @@
 import unittest
 import requests_mock
-import api
-from pybitx.api import BitX, BitXAPIError
+from pyluno import api
+from pyluno.api import Luno, LunoAPIError
 import base64
 
 
-class TestBitX(unittest.TestCase):
+class TestLuno(unittest.TestCase):
     def testConstructor(self):
-        api = BitX('', '', {})
-        self.assertTrue(isinstance(api, BitX))
+        api = Luno('', '', {})
+        self.assertTrue(isinstance(api, Luno))
 
     def testOptions(self):
-        api = BitX('', '')
+        api = Luno('', '')
         self.assertEqual(api.hostname, 'api.mybitx.com')
         self.assertEqual(api.port, 443)
         self.assertEqual(api.pair, 'XBTZAR')
@@ -24,14 +24,14 @@ class TestBitX(unittest.TestCase):
         }
         key = 'cnz2yjswbv3jd'
         secret = '0hydMZDb9HRR3Qq-iqALwZtXLkbLR4fWxtDZvkB9h4I'
-        api = BitX(key, secret, options)
+        api = Luno(key, secret, options)
         self.assertEqual(api.hostname, options['hostname'])
         self.assertEqual(api.port, options['port'])
         self.assertEqual(api.pair, options['pair'])
         self.assertEqual(api.auth, (key, secret))
 
     def testConstructURL(self):
-        api = BitX('', '')
+        api = Luno('', '')
         url = api.construct_url('test')
         self.assertEqual(url, 'https://api.mybitx.com/api/1/test')
 
@@ -39,7 +39,7 @@ class TestBitX(unittest.TestCase):
         options = {
             'hostname': 'localhost',
         }
-        api = BitX('', '', options)
+        api = Luno('', '', options)
         url = api.construct_url('test')
         self.assertEqual(url, 'https://localhost/api/1/test')
 
@@ -47,7 +47,7 @@ class TestBitX(unittest.TestCase):
         options = {
             'port': 40000
         }
-        api = BitX('', '', options)
+        api = Luno('', '', options)
         url = api.construct_url('test')
         self.assertEqual(url, 'https://api.mybitx.com:40000/api/1/test')
 
@@ -56,7 +56,7 @@ class TestBitX(unittest.TestCase):
             'hostname': 'localhost',
             'port': 40000
         }
-        api = BitX('', '', options)
+        api = Luno('', '', options)
         url = api.construct_url('test')
         self.assertEqual(url, 'https://localhost:40000/api/1/test')
 
@@ -66,7 +66,9 @@ class TestAPICalls(unittest.TestCase):
     @staticmethod
     def make_auth_header(auth):
         s = ':'.join(auth)
-        k = base64.b64encode(s)
+        k = base64.b64encode(s.encode())
+        # k = s.encode()
+        # print(k)
         return 'Basic %s' % (k,)
 
     def setUp(self):
@@ -76,7 +78,8 @@ class TestAPICalls(unittest.TestCase):
         }
         key = 'mykey'
         secret = 'mysecret'
-        self.api = BitX(key, secret, options)
+        self.api = Luno(key, secret, options)
+        # print(self.api.auth)
         self.auth_string = TestAPICalls.make_auth_header(self.api.auth)
 
     @requests_mock.Mocker()
@@ -84,9 +87,9 @@ class TestAPICalls(unittest.TestCase):
         headers = {
             'Accept': 'application/json',
             'Accept-Charset': 'utf-8',
-            'User-Agent': 'py-bitx v' + api.__version__
+            'User-Agent': 'py-luno v' + api.__version__
         }
-        m.get('https://api.dummy.com/api/1/ticker?pair=XBTZAR', json={'success': True}, request_headers=headers)
+        m.get('https://api.dummy.com/api/1/ticker?pair=XBTZAR', json={'success': True}, headers=headers)
         result = self.api.get_ticker()
         self.assertTrue(result['success'])
 
@@ -111,7 +114,7 @@ class TestAPICalls(unittest.TestCase):
         try:
             self.api.get_ticker()
             self.fail('Exception not thrown')
-        except BitXAPIError as e:
+        except LunoAPIError as e:
             self.assertEqual(e.code, 200)
             self.assertEqual(e.url, url + '?pair=' + self.api.pair)
 
@@ -178,7 +181,6 @@ class TestAPICalls(unittest.TestCase):
             ]
         })
 
-
     @requests_mock.Mocker()
     def testTrades(self, m):
         response = {
@@ -223,7 +225,7 @@ class TestAPICalls(unittest.TestCase):
             ]
         }
         url = 'https://api.dummy.com/api/1/listorders?pair=XBTZAR'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.get_orders()
         self.assertDictEqual(result, response)
 
@@ -234,12 +236,12 @@ class TestAPICalls(unittest.TestCase):
         try:
             self.api.get_orders(kind='basic')
             self.fail('Exception not thrown')
-        except BitXAPIError as e:
+        except LunoAPIError as e:
             self.assertEqual(e.code, 401)
             self.assertEqual(e.url, url)
 
     @requests_mock.Mocker()
-    def testListOrdersAuth(self, m):
+    def testListOrdersAuthSpecific(self, m):
         response = {
             "order_id": "BXHW6PFRRXKFSB4",
             "creation_timestamp": 1402866878367,
@@ -266,7 +268,7 @@ class TestAPICalls(unittest.TestCase):
             ],
         }
         url = 'https://api.dummy.com/api/1/orders/BXHW6PFRRXKFSB4'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.get_order('BXHW6PFRRXKFSB4')
         self.assertDictEqual(result, response)
 
@@ -276,7 +278,7 @@ class TestAPICalls(unittest.TestCase):
                     "account_id": "123456", "assigned_at": 1412659801000, "total_received": "0.67",
                     "total_unconfirmed": "0.00"}
         url = 'https://api.dummy.com/api/1/funding_address?asset=XBT'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.get_funding_address('XBT')
         self.assertDictEqual(result, response)
 
@@ -295,16 +297,16 @@ class TestAPICalls(unittest.TestCase):
             ]
         }
         url = 'https://api.dummy.com/api/1/withdrawals'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.get_withdrawals_status()
         self.assertDictEqual(result, response)
 
     @requests_mock.Mocker()
-    def testWithdrawalsStatus(self, m):
+    def testWithdrawalsStatusSpecific(self, m):
         response = {"status": "COMPLETED", "id": "1121"}
         url = 'https://api.dummy.com/api/1/withdrawals/1121'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
-        result = self.api.get_withdrawals_status("1121")
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
+        result = self.api.get_withdrawals_status('1121')
         self.assertDictEqual(result, response)
 
     @requests_mock.Mocker()
@@ -330,7 +332,7 @@ class TestAPICalls(unittest.TestCase):
             ]
         }
         url = 'https://api.dummy.com/api/1/balance'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.get_balance()
         self.assertDictEqual(result, response)
 
@@ -359,9 +361,9 @@ class TestAPICalls(unittest.TestCase):
             }
         ]
         url = 'https://api.dummy.com/api/1/accounts/319232323/transactions'
-        m.get(url, json={"id": "319232323", "transactions": trec}, request_headers={'Authorization': self.auth_string})
-        m.get(url+'?max_row=1', json={"id": "319232323", "transactions": [trec[0]]}, request_headers={'Authorization': self.auth_string})
-        m.get(url+'?min_row=2', json={"id": "319232323", "transactions": [trec[1]]}, request_headers={'Authorization': self.auth_string})
+        m.get(url, json={"id": "319232323", "transactions": trec}, headers={'Authorization': self.auth_string})
+        m.get(url+'?max_row=1', json={"id": "319232323", "transactions": [trec[0]]}, headers={'Authorization': self.auth_string})
+        m.get(url+'?min_row=2', json={"id": "319232323", "transactions": [trec[1]]}, headers={'Authorization': self.auth_string})
         result = self.api.get_transactions('319232323')
         self.assertDictEqual(result, {"id": "319232323", "transactions": trec})
         result = self.api.get_transactions('319232323', max_row=1)
@@ -390,7 +392,7 @@ class TestAPICalls(unittest.TestCase):
             ]
         }
         url = 'https://api.dummy.com/api/1/accounts/319232323/pending'
-        m.get(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.get(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.get_pending_transactions('319232323')
         self.assertDictEqual(result, response)
 
@@ -400,13 +402,14 @@ class TestAPICalls(unittest.TestCase):
             "order_id": "BXMC2CJ7HNB88U4"
         }
         url = 'https://api.dummy.com/api/1/postorder'
-        m.post(url, json=response, request_headers={'Authorization': self.auth_string})
+        m.post(url, json=response, headers={'Authorization': self.auth_string})
         result = self.api.create_limit_order('buy', 0.1, 500)
         data = {s.split('=')[0]:s.split('=')[1] for s in m.request_history[0].text.split('&')}
         self.assertEqual(data['pair'], 'XBTZAR')
         self.assertEqual(data['volume'], '0.1')
         self.assertEqual(data['price'], '500')
         self.assertDictEqual(result, response)
+
 
 def main():
     unittest.main()

@@ -1,9 +1,11 @@
-import requests
-import logging
+from __future__ import absolute_import
+
 from concurrent.futures import ThreadPoolExecutor
-from meta import version
-import pandas as pd
 import json
+import logging
+import pandas as pd
+import requests
+from .meta import version
 
 __version__ = version
 
@@ -11,17 +13,19 @@ log = logging.getLogger(__name__)
 
 # --------------------------- constants -----------------------
 
-class BitXAPIError(ValueError):
+
+class LunoAPIError(ValueError):
     def __init__(self, response):
         self.url = response.url
         self.code = response.status_code
         self.message = response.text
 
     def __str__(self):
-        return "BitX request %s failed with %d: %s" % (self.url, self.code, self.message)
+        return "Luno request %s failed with %d: %s" % (
+            self.url, self.code, self.message)
 
 
-class BitX:
+class Luno:
     def __init__(self, key, secret, options={}):
         self.options = options
         self.auth = (key, secret)
@@ -36,7 +40,7 @@ class BitX:
         self.headers = {
             'Accept': 'application/json',
             'Accept-Charset': 'utf-8',
-            'User-Agent': 'py-bitx v' + __version__
+            'User-Agent': 'py-luno v' + __version__
         }
         self._executor = ThreadPoolExecutor(max_workers=5)
 
@@ -54,17 +58,21 @@ class BitX:
     def api_request(self, call, params, kind='auth', http_call='get'):
         """
         General API request. Generally, use the convenience functions below
-        :param kind: the type of request to make. 'auth' makes an authenticated call; 'basic' is unauthenticated
+        :param kind: the type of request to make. 'auth' makes an
+            authenticated call; 'basic' is unauthenticated
         :param call: the API call to make
         :param params: a dict of query parameters
-        :return: a json response, a BitXAPIError is thrown if the api returns with an error
+        :return: a json response, a LunoAPIError is thrown if
+            the api returns with an error
         """
         url = self.construct_url(call)
         auth = self.auth if kind == 'auth' else None
         if http_call == 'get':
-            response = requests.get(url, params, headers=self.headers, auth=auth)
+            response = requests.get(
+                url, params, headers=self.headers, auth=auth)
         elif http_call == 'post':
-            response = requests.post(url, data = params, headers=self.headers, auth=auth)
+            response = requests.post(
+                url, data=params, headers=self.headers, auth=auth)
         else:
             raise ValueError('Invalid http_call parameter')
         try:
@@ -72,7 +80,7 @@ class BitX:
         except ValueError:
             result = {'error': 'No JSON content returned'}
         if response.status_code != 200 or 'error' in result:
-            raise BitXAPIError(response)
+            raise LunoAPIError(response)
         else:
             return result
 
@@ -95,8 +103,10 @@ class BitX:
         q = self.get_order_book(limit, kind)
         asks = pd.DataFrame(q['asks'])
         bids = pd.DataFrame(q['bids'])
-        index = pd.MultiIndex.from_product([('asks', 'bids'),('price', 'volume')])
-        df = pd.DataFrame(pd.concat([asks, bids], axis=1).values, columns=index)
+        index = pd.MultiIndex.from_product(
+            [('asks', 'bids'), ('price', 'volume')])
+        df = pd.DataFrame(
+            pd.concat([asks, bids], axis=1).values, columns=index)
         return df
 
     def get_trades(self, limit=None, kind='auth'):
@@ -115,10 +125,13 @@ class BitX:
 
     def get_orders(self, state=None, kind='auth'):
         """
-        Returns a list of the most recently placed orders. You can specify an optional state='PENDING' parameter to
-        restrict the results to only open orders. You can also specify the market by using the optional pair parameter.
+        Returns a list of the most recently placed orders. You can specify an
+            optional state='PENDING' parameter to
+        restrict the results to only open orders. You can also specify the
+            market by using the optional pair parameter.
         The list is truncated after 100 items.
-        :param kind: typically 'auth' if you want this to return anything useful
+        :param kind: typically 'auth' if you want this to return anything
+            useful
         :param state: String optional 'COMPLETE', 'PENDING', or None (default)
         :return:
         """
@@ -131,14 +144,15 @@ class BitX:
         """
         Get an order by its ID
         :param order_id: string	The order ID
-        :return: dict order details or BitXAPIError raised
+        :return: dict order details or LunoAPIError raised
         """
         return self.api_request('orders/%s' % (order_id,), None)
 
     def get_orders_frame(self, state=None, kind='auth'):
         q = self.get_orders(state, kind)
         tj = json.dumps(q['orders'])
-        df = pd.read_json(tj, convert_dates=['creation_timestamp', 'expiration_timestamp'])
+        df = pd.read_json(
+            tj, convert_dates=['creation_timestamp', 'expiration_timestamp'])
         df.index = df.creation_timestamp
         return df
 
@@ -174,7 +188,8 @@ class BitX:
     def stop_all_orders(self):
         """
         Stops all pending orders, both sell and buy
-        :return: dict of Boolean -- whether request succeeded or not for each order_id that was pending
+        :return: dict of Boolean -- whether request succeeded or not for each
+            order_id that was pending
         """
         pending = self.get_orders('PENDING')['orders']
         ids = [order['order_id'] for order in pending]
@@ -184,13 +199,15 @@ class BitX:
             result[order_id] = status['success']
         return result
 
-
     def get_funding_address(self, asset):
         """
-        Returns the default receive address associated with your account and the amount received via the address. You
-        can specify an optional address parameter to return information for a non-default receive address. In the
-        response, total_received is the total confirmed Bitcoin amount received excluding unconfirmed transactions.
-        total_unconfirmed is the total sum of unconfirmed receive transactions.
+        Returns the default receive address associated with your account and
+            the amount received via the address. You can specify an optional
+            address parameter to return information for a non-default receive
+            address. In the response, total_received is the total confirmed
+            Bitcoin amount received excluding unconfirmed transactions.
+            total_unconfirmed is the total sum of unconfirmed receive
+            transactions.
         :param asset: For now, only XBT is valid
         :return: dict
         """
@@ -215,10 +232,12 @@ class BitX:
             params['min_row'] = min_row
         if max_row is not None:
             params['max_row'] = max_row
-        return self.api_request('accounts/%s/transactions' % (account_id,), params)
+        return self.api_request(
+            'accounts/%s/transactions' % (account_id,), params)
 
     def get_transactions_frame(self, account_id, min_row=None, max_row=None):
-        tx = self.get_transactions(account_id, min_row, max_row)['transactions']
+        tx = self.get_transactions(
+            account_id, min_row, max_row)['transactions']
         df = pd.DataFrame(tx)
         df.index = pd.to_datetime(df.timestamp, unit='ms')
         df.drop('timestamp', axis=1, inplace=True)
