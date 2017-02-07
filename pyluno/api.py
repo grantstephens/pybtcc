@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 import requests
 from .meta import version
-
+from .ratelimit import RateLimiter
 __version__ = version
 
 log = logging.getLogger(__name__)
@@ -25,6 +25,17 @@ class LunoAPIError(ValueError):
             self.url, self.code, self.message)
 
 
+class LunoAPIRateLimitError(ValueError):
+    def __init__(self, response):
+        self.url = response.url
+        self.code = response.status_code
+        self.message = response.text
+
+    def __str__(self):
+        return "Rate Limit Error.\nLuno request %s failed with %d: %s" % (
+            self.url, self.code, self.message)
+
+
 class Luno:
     def __init__(self, key, secret, options={}):
         self.options = options
@@ -37,12 +48,15 @@ class Luno:
         self.pair = options['pair'] if 'pair' in options else 'XBTZAR'
         self.ca = options['ca'] if 'ca' in options else None
         self.timeout = options['timeout'] if 'timeout' in options else 30
+        self.maxRate = options['maxRate'] if 'maxRate' in options else 1
+        self.maxBurst = options['maxBurst'] if 'maxBurst' in options else 5
         self.headers = {
             'Accept': 'application/json',
             'Accept-Charset': 'utf-8',
             'User-Agent': 'py-luno v' + __version__
         }
         self._executor = ThreadPoolExecutor(max_workers=5)
+        self.requests_session = requests.session()
 
     def close(self):
         log.info('Asking MultiThreadPool to shutdown')
@@ -55,6 +69,7 @@ class Luno:
             base += ':%d' % (self.port,)
         return "https://%s/api/1/%s" % (base, call)
 
+    @RateLimiter
     def api_request(self, call, params, kind='auth', http_call='get'):
         """
         General API request. Generally, use the convenience functions below
@@ -68,8 +83,8 @@ class Luno:
         url = self.construct_url(call)
         auth = self.auth if kind == 'auth' else None
         if http_call == 'get':
-            response = requests.get(
-                url, params, headers=self.headers, auth=auth)
+            response = self.requests_session.get(
+                url, params=params, headers=self.headers, auth=auth)
         elif http_call == 'post':
             response = requests.post(
                 url, data=params, headers=self.headers, auth=auth)
@@ -79,7 +94,10 @@ class Luno:
             result = response.json()
         except ValueError:
             result = {'error': 'No JSON content returned'}
-        if response.status_code != 200 or 'error' in result:
+        if response.status_code in [429, 503]:
+            log.error('Rate Limit Exceeded')
+            raise LunoAPIRateLimitError(response)
+        elif response.status_code != 200 or 'error' in result:
             raise LunoAPIError(response)
         else:
             return result
@@ -121,10 +139,13 @@ class Luno:
     def get_trades_frame(self, limit=None, kind='auth', since=None):
         trades = self.get_trades(limit, kind, since)
         df = pd.DataFrame(trades['trades'])
-        if df.empty:
-            return None
-        df.index = pd.to_datetime(df.timestamp, unit='ms')
-        df.drop('timestamp', axis=1, inplace=True)
+        if not df.empty:
+            df.index = pd.to_datetime(df.timestamp, unit='ms')
+            df.price = df.price.apply(pd.to_numeric)
+            df.volume = df.volume.apply(pd.to_numeric)
+            df.drop('timestamp', axis=1, inplace=True)
+        else:
+            log.warning('Empty response from get_trades. Returning empty df')
         return df
 
     def get_orders(self, state=None, kind='auth'):
