@@ -199,6 +199,25 @@ class Luno:
         result = self.api_request('postorder', params=data, http_call='post')
         return result
 
+    def create_market_order(self, order_type, volume):
+        """
+        Create a new market order
+        :param order_type: 'buy' or 'sell'
+        :param volume: the volume of btc if sell, or currency if buy.
+        :return: the order id
+        """
+        data = {
+            'pair': self.pair,
+            'type': 'BUY' if order_type == 'buy' else 'SELL',
+            'volume': str(volume),
+        }
+        if order_type is 'buy':
+            data['couter_volume'] = volume
+        else:
+            data['base_volume'] = volume
+        result = self.api_request('marketorder', params=data, http_call='post')
+        return result
+
     def stop_order(self, order_id):
         """
         Create a new limit order
@@ -270,3 +289,40 @@ class Luno:
 
     def get_pending_transactions(self, account_id):
         return self.api_request('accounts/%s/pending' % (account_id,), None)
+
+    def create_account(self, currency, name):
+        """
+        Create a new account in the selected currency
+        :param currency: Currency of account
+        :param name: Name of account
+        :return: dict with name. currency and id of new account
+        """
+        data = {
+            'currency': currency,
+            'name': name,
+        }
+        return self.api_request('accounts', params=data, http_call='post')
+
+    def list_trades(self, limit=None, since=None):
+        params = {'pair': self.pair}
+        if since is not None:
+            params['since'] = since
+        trades = self.api_request('listtrades', params)
+        if limit is not None:
+            trades['trades'] = trades['trades'][:limit]
+        return trades
+
+    def list_trades_frame(self, limit=None, since=None):
+        trades = self.list_trades(limit, since)
+        df = pd.DataFrame(trades['trades'])
+        if not df.empty:
+            df.index = pd.to_datetime(df.timestamp, unit='ms')
+            df.price = df.price.apply(pd.to_numeric)
+            df.volume = df.volume.apply(pd.to_numeric)
+            df.base = df.base.apply(pd.to_numeric)
+            df.counter = df.counter.apply(pd.to_numeric)
+            df.fee_base = df.fee_base.apply(pd.to_numeric)
+            df.drop('timestamp', axis=1, inplace=True)
+        else:
+            log.warning('Empty response from list_trades. Returning empty df')
+        return df
