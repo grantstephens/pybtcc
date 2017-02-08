@@ -1,17 +1,17 @@
 import unittest
 import requests_mock
-from pyluno import api
-from pyluno.api import Luno, LunoAPIError
+from pybtcc import api
+from pybtcc.api import btcc, btccAPIError
 import base64
 
 
-class TestLuno(unittest.TestCase):
+class Testbtcc(unittest.TestCase):
     def testConstructor(self):
-        api = Luno('', '', {})
-        self.assertTrue(isinstance(api, Luno))
+        api = btcc('', '', {})
+        self.assertTrue(isinstance(api, btcc))
 
     def testOptions(self):
-        api = Luno('', '')
+        api = btcc('', '')
         self.assertEqual(api.hostname, 'api.mybitx.com')
         self.assertEqual(api.port, 443)
         self.assertEqual(api.pair, 'XBTZAR')
@@ -24,14 +24,14 @@ class TestLuno(unittest.TestCase):
         }
         key = 'cnz2yjswbv3jd'
         secret = '0hydMZDb9HRR3Qq-iqALwZtXLkbLR4fWxtDZvkB9h4I'
-        api = Luno(key, secret, options)
+        api = btcc(key, secret, options)
         self.assertEqual(api.hostname, options['hostname'])
         self.assertEqual(api.port, options['port'])
         self.assertEqual(api.pair, options['pair'])
         self.assertEqual(api.auth, (key, secret))
 
     def testConstructURL(self):
-        api = Luno('', '')
+        api = btcc('', '')
         url = api.construct_url('test')
         self.assertEqual(url, 'https://api.mybitx.com/api/1/test')
 
@@ -39,7 +39,7 @@ class TestLuno(unittest.TestCase):
         options = {
             'hostname': 'localhost',
         }
-        api = Luno('', '', options)
+        api = btcc('', '', options)
         url = api.construct_url('test')
         self.assertEqual(url, 'https://localhost/api/1/test')
 
@@ -47,7 +47,7 @@ class TestLuno(unittest.TestCase):
         options = {
             'port': 40000
         }
-        api = Luno('', '', options)
+        api = btcc('', '', options)
         url = api.construct_url('test')
         self.assertEqual(url, 'https://api.mybitx.com:40000/api/1/test')
 
@@ -56,7 +56,7 @@ class TestLuno(unittest.TestCase):
             'hostname': 'localhost',
             'port': 40000
         }
-        api = Luno('', '', options)
+        api = btcc('', '', options)
         url = api.construct_url('test')
         self.assertEqual(url, 'https://localhost:40000/api/1/test')
 
@@ -78,7 +78,7 @@ class TestAPICalls(unittest.TestCase):
         }
         key = 'mykey'
         secret = 'mysecret'
-        self.api = Luno(key, secret, options)
+        self.api = btcc(key, secret, options)
         # print(self.api.auth)
         self.auth_string = TestAPICalls.make_auth_header(self.api.auth)
 
@@ -87,7 +87,7 @@ class TestAPICalls(unittest.TestCase):
         headers = {
             'Accept': 'application/json',
             'Accept-Charset': 'utf-8',
-            'User-Agent': 'py-luno v' + api.__version__
+            'User-Agent': 'py-btcc v' + api.__version__
         }
         m.get('https://api.dummy.com/api/1/ticker?pair=XBTZAR', json={'success': True}, headers=headers)
         result = self.api.get_ticker()
@@ -114,7 +114,7 @@ class TestAPICalls(unittest.TestCase):
         try:
             self.api.get_ticker()
             self.fail('Exception not thrown')
-        except LunoAPIError as e:
+        except btccAPIError as e:
             self.assertEqual(e.code, 200)
             self.assertEqual(e.url, url + '?pair=' + self.api.pair)
 
@@ -236,7 +236,7 @@ class TestAPICalls(unittest.TestCase):
         try:
             self.api.get_orders(kind='basic')
             self.fail('Exception not thrown')
-        except LunoAPIError as e:
+        except btccAPIError as e:
             self.assertEqual(e.code, 401)
             self.assertEqual(e.url, url)
 

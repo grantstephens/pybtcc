@@ -16,29 +16,29 @@ log = logging.getLogger(__name__)
 # --------------------------- constants -----------------------
 
 
-class LunoAPIError(ValueError):
+class btccAPIError(ValueError):
     def __init__(self, response):
         self.url = response.url
         self.code = response.status_code
         self.message = response.text
 
     def __str__(self):
-        return "Luno request %s failed with %d: %s" % (
+        return "btcc request %s failed with %d: %s" % (
             self.url, self.code, self.message)
 
 
-class LunoAPIRateLimitError(ValueError):
+class btccAPIRateLimitError(ValueError):
     def __init__(self, response):
         self.url = response.url
         self.code = response.status_code
         self.message = response.text
 
     def __str__(self):
-        return "Rate Limit Error.\nLuno request %s failed with %d: %s" % (
+        return "Rate Limit Error.\nbtcc request %s failed with %d: %s" % (
             self.url, self.code, self.message)
 
 
-class Luno:
+class btcc:
     def __init__(self, key, secret, options={}):
         self.options = options
         self.auth = (key, secret)
@@ -55,7 +55,7 @@ class Luno:
         self.headers = {
             'Accept': 'application/json',
             'Accept-Charset': 'utf-8',
-            'User-Agent': 'py-luno v' + __version__
+            'User-Agent': 'py-btcc v' + __version__
         }
         # Use a Requests session so that we can keep headers and connections
         # across API requests
@@ -86,7 +86,7 @@ class Luno:
             authenticated call; 'basic' is unauthenticated
         :param call: the API call to make
         :param params: a dict of query parameters
-        :return: a json response, a LunoAPIError is thrown if
+        :return: a json response, a btccAPIError is thrown if
             the api returns with an error
         """
         url = self.construct_url(call)
@@ -105,9 +105,9 @@ class Luno:
             result = {'error': 'No JSON content returned'}
         if response.status_code in [429, 503]:
             log.error('Rate Limit Exceeded')
-            raise LunoAPIRateLimitError(response)
+            raise btccAPIRateLimitError(response)
         elif response.status_code != 200 or 'error' in result:
-            raise LunoAPIError(response)
+            raise btccAPIError(response)
         else:
             return result
 
@@ -178,7 +178,7 @@ class Luno:
         """
         Get an order by its ID
         :param order_id: string	The order ID
-        :return: dict order details or LunoAPIError raised
+        :return: dict order details or btccAPIError raised
         """
         return self.api_request('orders/%s' % (order_id,), None)
 

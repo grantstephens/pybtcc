@@ -1,4 +1,4 @@
-from pyluno.api import Luno
+from pybtcc.api import btcc
 import os
 import pprint
 
@@ -28,7 +28,7 @@ def runDemo():
               " credentials are available "
               " in the BITX_KEY and BITX_SECRET environment variables"
               " and run this demo again")
-    api = Luno(user, password)
+    api = btcc(user, password)
     kind = 'auth' if auth else 'none'
     format_call('  Ticker   ', api.get_ticker(kind))
     format_call('All Tickers', api.get_all_tickers(kind))

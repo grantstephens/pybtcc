@@ -1,5 +1,5 @@
-# pyluno
-Luno API for python
+# pybtcc
+btcc API for python
 
 # Installation
 
@@ -9,14 +9,14 @@ See the [tests](tests/) for detailed usage examples, but basically:
 
 ## API object creation
 
-    from pyluno.api import Luno
-    api = Luno(key, secret. options)
+    from pybtcc.api import btcc
+    api = btcc(key, secret. options)
 
 Where `options` can be
 
 | option key   | description      | default |
 |--------------|------------------|---------|
-|hostname | the API host | api.myluno.com |
+|hostname | the API host | api.mybtcc.com |
 |port | the TCP port to attach to | 443 |
 |pair | The currency pair to provide results for | XBTZAR |
 |ca | The root certificate | None |
@@ -38,5 +38,5 @@ Where `options` can be
 
 # Acknowledgements
 
-A nod to @bausmeier/node-luno for the node.js version, which helped
+A nod to @bausmeier/node-btcc for the node.js version, which helped
 accelerate the development of this code

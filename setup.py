@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
-import pyluno
+import pybtcc
 
 setup(
-    name='pyluno',
-    version=pyluno.__version__,
+    name='pybtcc',
+    version=pybtcc.__version__,
     packages=find_packages(exclude=['tests']),
-    description='A Luno API for Python',
-    author='Cayle Sharrock',
-    author_email='cayle@nimbustech.biz',
+    description='A btcc API for Python',
+    author='Grant Stephens',
+    author_email='grant@stephens.co.za',
     scripts=['demo.py'],
     install_requires=[
         'futures>=3.0.3',
@@ -16,10 +16,10 @@ setup(
         'pandas>=0.17.0'
     ],
     license='MIT',
-    url='https://github.com/grantstephens/pyluno',
-    download_url='https://github.com/grantstephens/pyluno/tarball/%s'
-        % (pyluno.__version__, ),
-    keywords='Luno Bitcoin exchange API',
+    url='https://github.com/grantstephens/pybtcc',
+    download_url='https://github.com/grantstephens/pybtcc/tarball/%s'
+        % (pybtcc.__version__, ),
+    keywords='btcc Bitcoin exchange API',
     classifiers=[],
     test_suite='tests',
     tests_require=[
