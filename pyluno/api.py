@@ -55,8 +55,15 @@ class Luno:
             'Accept-Charset': 'utf-8',
             'User-Agent': 'py-luno v' + __version__
         }
+        # Use a Requests session so that we can keep headers and connections
+        # across API requests
+        self._requests_session = requests.Session()
+        self._requests_session.headers.update({
+            'Accept': 'application/json',
+            'Accept-Charset': 'utf-8',
+            'User-Agent': 'py-bitx v' + __version__
+        })
         self._executor = ThreadPoolExecutor(max_workers=5)
-        self.requests_session = requests.session()
 
     def close(self):
         log.info('Asking MultiThreadPool to shutdown')
@@ -83,11 +90,11 @@ class Luno:
         url = self.construct_url(call)
         auth = self.auth if kind == 'auth' else None
         if http_call == 'get':
-            response = self.requests_session.get(
-                url, params=params, headers=self.headers, auth=auth)
+            response = self._requests_session.get(
+                url, params=params, auth=auth, timeout=self.timeout)
         elif http_call == 'post':
-            response = requests.post(
-                url, data=params, headers=self.headers, auth=auth)
+            response = self._requests_session.post(
+                url, data=params, auth=auth, timeout=self.timeout)
         else:
             raise ValueError('Invalid http_call parameter')
         try:
