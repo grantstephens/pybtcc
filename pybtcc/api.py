@@ -149,11 +149,11 @@ class btcc:
     def get_trades_frame(self, limit=None, since=None, sincetype='id', kind='auth'):
         trades = self.get_trades(limit, since,  sincetype, kind)
         df = pd.DataFrame(trades)
-        print(df)
         if not df.empty:
             df.date = df.date.apply(pd.to_numeric)
             df.index = pd.to_datetime(df.date, unit='s')
             df.tid = df.tid.apply(pd.to_numeric)
+            df.price = df.price.apply(pd.to_numeric)
             df.drop('date', axis=1, inplace=True)
         else:
             log.warning('Empty response from get_trades. Returning empty df')
