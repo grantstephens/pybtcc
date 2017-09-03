@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import logging
-import _version
+from . import _version
 
 
 __version__ = _version.__version__

@@ -6,10 +6,10 @@ import logging
 import pandas as pd
 import requests
 
-from .meta import version
+from . import _version
 from .ratelimit import RateLimiter
 
-__version__ = version
+__version__ = _version.__version__
 
 log = logging.getLogger(__name__)
 
